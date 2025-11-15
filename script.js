@@ -87,3 +87,18 @@ window.addEventListener("touchend", () => {
 });
 
 updateView();
+window.addEventListener("mousemove", (e) => {
+  const bounds = wrapper.getBoundingClientRect();
+  const mouseX = ((e.clientX - bounds.left) / bounds.width) * 100;
+  const mouseY = ((e.clientY - bounds.top) / bounds.height) * 100;
+
+  wrapper.style.transformOrigin = `${mouseX}% ${mouseY}%`;
+});
+window.addEventListener("touchmove", (e) => {
+  const touch = e.touches[0];
+  const bounds = wrapper.getBoundingClientRect();
+  const x = ((touch.clientX - bounds.left) / bounds.width) * 100;
+  const y = ((touch.clientY - bounds.top) / bounds.height) * 100;
+
+  wrapper.style.transformOrigin = `${x}% ${y}%`;
+});
