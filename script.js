@@ -1,105 +1,89 @@
-const container = document.getElementById("tree-container");
-const rustTree = document.getElementById("rust-tree");
+const cleanImg = document.getElementById("treeClean");
+const rustImg  = document.getElementById("treeRust");
 
-let zoom = 1;
+let rustAmount   = 0;    // 0 = נקי, 1 = חלוד לגמרי
+let zoomCenterX  = 0.5;  // איפה העכבר בציר X (0–1)
+let zoomCenterY  = 0.5;  // איפה העכבר בציר Y (0–1)
 
-// יצירת "גרעיני חלודה" רנדומליים
-const rustSeeds = Array.from({ length: 12 }, () => ({
-    x: Math.random(),
-    y: Math.random(),
-    strength: 0.35 + Math.random() * 0.65
-}));
-
-function updateRustEffect() {
-    let rustLevel = Math.min(1, (zoom - 1) / 4);  // טווח זום גדול יותר
-
-    let mask = `radial-gradient(circle at center, rgba(0,0,0,${rustLevel}) 0%, rgba(0,0,0,0) 100%)`;
-
-    rustTree.style.clipPath = mask;
-
-    // אפקט רנדומלי
-    if (zoom > 1.2) {
-        rustTree.style.opacity =
-            rustLevel * (0.7 + Math.random() * 0.3);
-    } else {
-        rustTree.style.opacity = 0;
-    }
+function clamp01(x) {
+  return Math.max(0, Math.min(1, x));
 }
 
-window.addEventListener("wheel", (event) => {
-    zoom += event.deltaY * -0.0015;
-    zoom = Math.min(Math.max(zoom, 1), 5); // הגדלתי את טווח הזום
+function updateView() {
+  // כמה חלודה
+  rustImg.style.opacity = rustAmount;
 
-    container.style.transform = `scale(${zoom})`;
+  // כמה זום — כאן חיזקתי כדי שיהיה "יותר זום אין"
+  const scale = 1 + rustAmount * 0.6;  // אפשר להגדיל עוד אם תרצי
 
-    updateRustEffect();
-});
-const clean = document.getElementById("tree-clean");
-const rust = document.getElementById("tree-rust");
+  // זום לפי מיקום העכבר / האצבע
+  const cx = zoomCenterX - 0.5; // יחסי למרכז (-0.5 עד 0.5)
+  const cy = zoomCenterY - 0.5;
 
-let zoom = 1;
-let maxZoom = 4;
-let minZoom = 1;
+  const move = rustAmount * 140; // כמה להזיז בפיקסלים כשמאוד קרוב
+  const dx = -cx * move;
+  const dy = -cy * move;
 
-// שינוי נקודת הזום לפי מיקום העכבר
-document.addEventListener("wheel", function (e) {
-    e.preventDefault();
+  const transform =
+    `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale})`;
 
-    // חישוב כיוון הזום
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+  cleanImg.style.transform = transform;
+  rustImg.style.transform  = transform;
+}
 
-    // זום חדש
-    let newZoom = zoom + delta;
-    if (newZoom < minZoom) newZoom = minZoom;
-    if (newZoom > maxZoom) newZoom = maxZoom;
+/* ----- מחשב: גלגלת + מיקום עכבר ----- */
 
-    // חישוב יחס בין הזום הקודם לחדש
-    const zoomFactor = newZoom / zoom;
-    zoom = newZoom;
+// גלילה – מוסיפה/מורידה חלודה + זום
+window.addEventListener("wheel", (e) => {
+  e.preventDefault();
 
-    // מיקום העכבר יחסית למסך
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
+  if (e.deltaY < 0) {
+    rustAmount += 0.06; // יותר מהיר
+  } else {
+    rustAmount -= 0.06;
+  }
 
-    // הזזת origin של הזום למיקום העכבר
-    clean.style.transformOrigin = `${mouseX}px ${mouseY}px`;
-    rust.style.transformOrigin = `${mouseX}px ${mouseY}px`;
-
-    // החלת זום
-    clean.style.transform = `scale(${zoom})`;
-    rust.style.transform = `scale(${zoom})`;
-
-    // שקיפות חלודה לפי הזום
-    const rustOpacity = (zoom - 1) / (maxZoom - 1);
-    rust.style.opacity = rustOpacity;
+  rustAmount = clamp01(rustAmount);
+  updateView();
 }, { passive: false });
-// -------------------------------
-// Mobile pinch-to-zoom support
-// -------------------------------
-let touchStartDistance = 0;
 
-function getDistance(touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-}
+// תזוזת עכבר – משנה את נקודת הזום
+window.addEventListener("mousemove", (e) => {
+  zoomCenterX = e.clientX / window.innerWidth;
+  zoomCenterY = e.clientY / window.innerHeight;
+});
+
+/* ----- נייד: גרירה למעלה/למטה (אצבע אחת) ----- */
+
+let lastTouchY = null;
 
 window.addEventListener("touchstart", (e) => {
-    if (e.touches.length === 2) {
-        touchStartDistance = getDistance(e.touches);
-    }
-}, { passive: true });
+  if (e.touches.length === 1) {
+    lastTouchY = e.touches[0].clientY;
+  }
+}, { passive: false });
 
 window.addEventListener("touchmove", (e) => {
-    if (e.touches.length === 2) {
-        const currentDistance = getDistance(e.touches);
-        const delta = currentDistance - touchStartDistance;
+  if (e.touches.length === 1 && lastTouchY !== null) {
+    e.preventDefault();
+    const currentY = e.touches[0].clientY;
+    const dy = lastTouchY - currentY;   // גרירה למעלה = חיובי
 
-        if (delta > 10) {
-            zoomTarget = Math.min(3, zoomTarget + 0.05);
-        }
-        if (delta < -10) {
-            zoomTarget = Math.max(1, zoomTarget - 0.05);
-        }
-    }
-}, { passive: true });
+    const sensitivity = 0.003;          // כמה מהר משתנה החלודה
+    rustAmount += dy * sensitivity;
+    rustAmount = clamp01(rustAmount);
+
+    // גם במובייל – מרכז זום לפי אצבע
+    zoomCenterX = e.touches[0].clientX / window.innerWidth;
+    zoomCenterY = e.touches[0].clientY / window.innerHeight;
+
+    lastTouchY = currentY;
+    updateView();
+  }
+}, { passive: false });
+
+window.addEventListener("touchend", () => {
+  lastTouchY = null;
+});
+
+updateView();

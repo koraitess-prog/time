@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Rust Tree Zoom</title>
 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
-    /* רקע שחור מלא ומרכז את התוכן */
+    /* גוף הדף – רקע שחור, מרכז את העץ */
     html, body {
       margin: 0;
-      height: 100%;
+      padding: 0;
       width: 100%;
+      height: 100%;
       background: #000;
       overflow: hidden;
       display: flex;
@@ -19,37 +22,39 @@
       color: #fff;
     }
 
-    /* העטיפה של העץ + החלודה */
     .wrapper {
       position: relative;
-      max-height: 85vh;
-      max-width: 85vw;
-      transform-origin: center center; /* נעדכן לפי העכבר */
-      transition: transform 0.12s linear;
+      max-width: 90vw;
+      max-height: 90vh;
+      transform-origin: center center;
+      transition: transform 0.15s linear;
     }
 
     .tree {
       display: block;
-      max-height: 85vh;
+      max-width: 90vw;
+      max-height: 90vh;
       height: auto;
     }
 
     .rust {
       position: absolute;
       inset: 0;
-      max-height: 85vh;
+      max-width: 90vw;
+      max-height: 90vh;
       height: auto;
-      opacity: 0; /* מתחיל בלי חלודה */
-      transition: opacity 0.2s ease-out;
+      opacity: 0;
+      transition: opacity 0.2s linear;
       pointer-events: none;
     }
 
     .debug {
       position: fixed;
-      left: 12px;
-      bottom: 12px;
+      bottom: 10px;
+      left: 10px;
       font-size: 11px;
-      opacity: 0.6;
+      opacity: 0.5;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -58,66 +63,88 @@
 
   <div class="wrapper" id="wrapper">
     <!-- עץ נקי -->
-    <img src="tree_clean.png" class="tree" id="treeClean" alt="עץ נקי">
+    <img src="tree_clean.png" class="tree" id="treeClean" alt="עץ נקי" />
 
     <!-- עץ חלוד מעליו -->
-    <img src="tree_rust.png" class="tree rust" id="treeRust" alt="עץ חלוד">
+    <img src="tree_rust.png" class="tree rust" id="treeRust" alt="עץ חלוד" />
   </div>
 
-  <div class="debug">
-    זום: גלגלת. כיוון זום: לפי מיקום העכבר על העץ.
+  <div class="debug" id="debug">
+    גלגלת במחשב: למעלה = יותר חלודה, למטה = פחות. בטלפון – גרירה למעלה/למטה.
   </div>
 
   <script>
-    const wrapper = document.getElementById("wrapper");
     const cleanImg = document.getElementById("treeClean");
     const rustImg  = document.getElementById("treeRust");
+    const wrapper  = document.getElementById("wrapper");
+    const debug    = document.getElementById("debug");
 
     let rustAmount = 0;   // 0 = נקי, 1 = חלוד לגמרי
-    let scale      = 1;   // רמת הזום
+    let scaleBase  = 1;   // בסיס זום
+    let maxZoom    = 1.6; // כמה חזק זום אין (להגדיל/להקטין אם בא לך יותר/פחות)
 
-    /* זום וחלודה עם הגלגלת */
-    window.addEventListener("wheel", (event) => {
-      // גלילה למעלה = יותר חלודה + יותר זום
-      if (event.deltaY < 0) {
-        rustAmount += 0.05;
-        scale      += 0.04;
-      } else {
-        rustAmount -= 0.05;
-        scale      -= 0.04;
-      }
-
-      // להגביל ערכים
+    /* ---------- עוזר לעדכן מצב ---------- */
+    function updateView() {
+      // מגבילים בין 0 ל־1
       rustAmount = Math.max(0, Math.min(1, rustAmount));
-      scale      = Math.max(1, Math.min(1.6, scale)); // זום עדין, תשמרי איכות
 
-      // חשיפת חלודה
+      // כמה חלודה רואים
       rustImg.style.opacity = rustAmount;
 
-      // החלת זום
-      const t = `scale(${scale})`;
-      cleanImg.style.transform = t;
-      rustImg.style.transform  = t;
-    });
+      // זום – ככל שיש יותר חלודה, כך יותר זום
+      const scale = scaleBase + (maxZoom - scaleBase) * rustAmount;
+      wrapper.style.transform = `scale(${scale})`;
+    }
 
-    /* זום סביב העכבר – מעדכנים transform-origin לפי המיקום */
-    window.addEventListener("mousemove", (event) => {
-      const rect = wrapper.getBoundingClientRect();
-
-      // אם העכבר מחוץ לעץ – לא משנים כלום
-      if (
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom
-      ) {
-        return;
+    /* ---------- גלגלת במחשב ---------- */
+    window.addEventListener("wheel", (event) => {
+      // deltaY < 0 → גלילה למעלה (לכיוון המסך) → יותר חלודה
+      if (event.deltaY < 0) {
+        rustAmount += 0.06;
+      } else {
+        rustAmount -= 0.06;
       }
-
-      const percentX = ((event.clientX - rect.left) / rect.width) * 100;
-      const percentY = ((event.clientY - rect.top) / rect.height) * 100;
-
-      wrapper.style.transformOrigin = `${percentX}% ${percentY}%`;
+      updateView();
     });
+
+    /* ---------- טאץ' בטלפון / טאבלט ---------- */
+    let lastTouchY = null;
+
+    window.addEventListener("touchstart", (event) => {
+      if (event.touches.length === 1) {
+        lastTouchY = event.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchmove", (event) => {
+      if (event.touches.length === 1 && lastTouchY !== null) {
+        const currentY = event.touches[0].clientY;
+        const deltaY = lastTouchY - currentY; // גרירה למעלה = מספר חיובי
+
+        rustAmount += deltaY * 0.002; // רגישות – אפשר לשחק
+        updateView();
+
+        lastTouchY = currentY;
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchend", () => {
+      lastTouchY = null;
+    });
+
+    /* ---------- בדיקת טעינה של התמונות ---------- */
+    function checkLoaded(img, name) {
+      img.addEventListener("error", () => {
+        debug.textContent = `לא מצאתי את הקובץ: ${name}. בדקי שהשם והסיומת נכונים.`;
+      });
+    }
+
+    checkLoaded(cleanImg, "tree_clean.png");
+    checkLoaded(rustImg,  "tree_rust.png");
+
+    // התחלה – לוודא שהעץ נראה נקי לזום 1
+    updateView();
   </script>
 
+</body>
+</html>
