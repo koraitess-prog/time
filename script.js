@@ -73,3 +73,33 @@ document.addEventListener("wheel", function (e) {
     const rustOpacity = (zoom - 1) / (maxZoom - 1);
     rust.style.opacity = rustOpacity;
 }, { passive: false });
+// -------------------------------
+// Mobile pinch-to-zoom support
+// -------------------------------
+let touchStartDistance = 0;
+
+function getDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+
+window.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+        touchStartDistance = getDistance(e.touches);
+    }
+}, { passive: true });
+
+window.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2) {
+        const currentDistance = getDistance(e.touches);
+        const delta = currentDistance - touchStartDistance;
+
+        if (delta > 10) {
+            zoomTarget = Math.min(3, zoomTarget + 0.05);
+        }
+        if (delta < -10) {
+            zoomTarget = Math.max(1, zoomTarget - 0.05);
+        }
+    }
+}, { passive: true });
