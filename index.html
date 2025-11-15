@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>Rust Tree Zoom</title>
+
+  <style>
+    /* רקע שחור מלא ומרכז את התוכן */
+    html, body {
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: system-ui, sans-serif;
+      color: #fff;
+    }
+
+    /* העטיפה של העץ + החלודה */
+    .wrapper {
+      position: relative;
+      max-height: 85vh;
+      max-width: 85vw;
+      transform-origin: center center; /* נעדכן לפי העכבר */
+      transition: transform 0.12s linear;
+    }
+
+    .tree {
+      display: block;
+      max-height: 85vh;
+      height: auto;
+    }
+
+    .rust {
+      position: absolute;
+      inset: 0;
+      max-height: 85vh;
+      height: auto;
+      opacity: 0; /* מתחיל בלי חלודה */
+      transition: opacity 0.2s ease-out;
+      pointer-events: none;
+    }
+
+    .debug {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      font-size: 11px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrapper" id="wrapper">
+    <!-- עץ נקי -->
+    <img src="tree_clean.png" class="tree" id="treeClean" alt="עץ נקי">
+
+    <!-- עץ חלוד מעליו -->
+    <img src="tree_rust.png" class="tree rust" id="treeRust" alt="עץ חלוד">
+  </div>
+
+  <div class="debug">
+    זום: גלגלת. כיוון זום: לפי מיקום העכבר על העץ.
+  </div>
+
+  <script>
+    const wrapper = document.getElementById("wrapper");
+    const cleanImg = document.getElementById("treeClean");
+    const rustImg  = document.getElementById("treeRust");
+
+    let rustAmount = 0;   // 0 = נקי, 1 = חלוד לגמרי
+    let scale      = 1;   // רמת הזום
+
+    /* זום וחלודה עם הגלגלת */
+    window.addEventListener("wheel", (event) => {
+      // גלילה למעלה = יותר חלודה + יותר זום
+      if (event.deltaY < 0) {
+        rustAmount += 0.05;
+        scale      += 0.04;
+      } else {
+        rustAmount -= 0.05;
+        scale      -= 0.04;
+      }
+
+      // להגביל ערכים
+      rustAmount = Math.max(0, Math.min(1, rustAmount));
+      scale      = Math.max(1, Math.min(1.6, scale)); // זום עדין, תשמרי איכות
+
+      // חשיפת חלודה
+      rustImg.style.opacity = rustAmount;
+
+      // החלת זום
+      const t = `scale(${scale})`;
+      cleanImg.style.transform = t;
+      rustImg.style.transform  = t;
+    });
+
+    /* זום סביב העכבר – מעדכנים transform-origin לפי המיקום */
+    window.addEventListener("mousemove", (event) => {
+      const rect = wrapper.getBoundingClientRect();
+
+      // אם העכבר מחוץ לעץ – לא משנים כלום
+      if (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+      ) {
+        return;
+      }
+
+      const percentX = ((event.clientX - rect.left) / rect.width) * 100;
+      const percentY = ((event.clientY - rect.top) / rect.height) * 100;
+
+      wrapper.style.transformOrigin = `${percentX}% ${percentY}%`;
+    });
+  </script>
+
+</body>
+</html>

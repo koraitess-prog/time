@@ -1,0 +1,67 @@
+body {
+  margin: 0;
+  background: #050608;
+  overflow: hidden;
+}
+
+/* מיכל שמרכז את העץ */
+#container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* שתי שכבות העץ – נקי + חלוד */
+#container img {
+  position: absolute;
+  width: 60vw;
+  max-width: 1200px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  pointer-events: none;
+  image-rendering: high-quality;
+}
+
+/* שכבת החלודה מעל הנקי */
+#treeRust {
+  opacity: 0;
+  transition: opacity 0.25s ease-out, filter 0.25s ease-out;
+  filter: none;
+}
+
+/* כשאנחנו כבר עמוק בחלודה – אווירה אפוקליפטית */
+.apocalyptic {
+  background: radial-gradient(circle at center, #1a1010 0%, #050608 55%, #000000 100%);
+}
+body {
+    margin: 0;
+    height: 100vh;
+    background: black; /* רקע שחור אמיתי */
+    overflow: hidden;
+    display: flex;
+    justify-content: center;  /* מרכז אופקי */
+    align-items: center;      /* מרכז אנכי */
+}
+
+#tree-container {
+    position: relative;
+    width: 80vw;     /* גודל גדול יותר */
+    height: auto;
+    transition: transform 0.2s ease-out;
+}
+
+#clean-tree, #rust-tree {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+}
+
+#rust-tree {
+    opacity: 0;
+    transition: opacity 0.25s linear;
+}
