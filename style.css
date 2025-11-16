@@ -1,6 +1,5 @@
-/* style.css - קוד מלא עם גליץ' מהבהב */
+/* style.css - כולל מעבר עדין וגליץ' */
 
-/* איפוס CSS בסיסי לוודא שאין שוליים מפריעים */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -21,19 +20,24 @@ body {
     position: relative;
     width: 100vw; 
     height: 100vh;
+    /* מעבר חלק לתנועת הזום (scale) */
     transition: transform 0.2s ease-out; 
     overflow: hidden;
 }
 
+/* הגדרות כלליות לכל שכבות העץ */
 .tree-layer {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); 
+    width: 70%; 
+    height: 70%;
     pointer-events: none;
     object-fit: contain; 
-    transition: opacity 0.5s ease-in-out; 
+    
+    /* מעבר שקיפות איטי לחלודה (Fade-in) */
+    transition: opacity 0.8s ease-in-out; 
 }
 
 #tree-clean {
@@ -65,26 +69,23 @@ body {
 
 #glitch-overlay.glitching {
     opacity: 1;
-    /* אנימציה מהירה מאוד */
-    animation: tv-glitch 0.03s steps(2, end) infinite alternate; /* שינוי ל-0.03s */
+    animation: tv-glitch 0.03s steps(2, end) infinite alternate; 
     
-    /* הרקע: שילוב של קווי סריקה ורעש סטטי */
     background: 
         repeating-linear-gradient(
             90deg, 
-            rgba(255, 255, 255, 0.2), /* יותר בולט */
+            rgba(255, 255, 255, 0.2), 
             rgba(0, 0, 0, 0.08) 1px,
             rgba(255, 255, 255, 0.2) 2px
         ),
         repeating-linear-gradient(
             0deg, 
-            rgba(255, 255, 255, 0.15) 0, /* יותר בולט */
+            rgba(255, 255, 255, 0.15) 0, 
             rgba(0, 0, 0, 0.6) 2px,
             rgba(0, 0, 0, 0.4) 3px
         ),
         black; 
     
-    /* עיוות צבע חזק (Chromatic Aberration) */
     box-shadow: 
         1px 0 0 rgba(255, 0, 0, 1),      
         -1px 0 0 rgba(0, 255, 255, 1),   
@@ -98,19 +99,19 @@ body {
     0% {
         transform: translate(calc(var(--glitch-offset) * 0.1), 0);
         filter: hue-rotate(0deg) contrast(150%) brightness(120%); 
-        opacity: 0.8; /* הבהוב: מתחיל קצת שקוף יותר */
-        background-position: 0% 0%; /* שינוי מיקום רקע לבהוב */
+        opacity: 0.8; 
+        background-position: 0% 0%; 
     }
     50% {
         transform: translate(calc(var(--glitch-offset) * -1), calc(var(--glitch-offset) * 1));
         filter: hue-rotate(-30deg) contrast(200%) brightness(100%); 
-        opacity: 1; /* הבהוב: הופך אטום יותר */
-        background-position: 50% 50%; /* שינוי מיקום רקע לבהוב */
+        opacity: 1; 
+        background-position: 50% 50%; 
     }
     100% {
         transform: translate(calc(var(--glitch-offset) * 1), calc(var(--glitch-offset) * -1));
         filter: hue-rotate(30deg) contrast(180%) brightness(130%);
-        opacity: 0.9; /* הבהוב: חוזר להיות קצת שקוף */
-        background-position: 100% 100%; /* שינוי מיקום רקע לבהוב */
+        opacity: 0.9; 
+        background-position: 100% 100%; 
     }
 }
