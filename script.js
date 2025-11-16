@@ -1,4 +1,4 @@
-// script.js - קוד סופי משולב: מחשב = Pan / פלאפון = Pinch Zoom יציב + Drag Pan (רצף איפוס מתוקן)
+// script.js - קוד סופי משולב: מחשב = Pan / פלאפון = Pinch Zoom יציב + Drag Pan (תיקון יציבות)
 
 // הגדרות עיקריות
 const MAX_ZOOM = 10;
@@ -66,11 +66,9 @@ function updateRustLayers() {
     maxRustLevel = Math.max(maxRustLevel, currentMaxRustIndex + 1);
 
     if (currentZoom === 1) {
-        // מצב ברירת מחדל בזום 1 - נקי
         rustLayers.forEach(layer => layer.style.opacity = 0);
         cleanLayer.style.opacity = 1;
     } else {
-        // חושף את השכבות עד לרמה המקסימלית שהושגה
         for (let i = 0; i < rustLayers.length; i++) {
             if (i < maxRustLevel) {
                 rustLayers[i].style.opacity = 1;
@@ -86,14 +84,14 @@ function updateRustLayers() {
 function activateGlitchAndReset() {
     if (isGlitching) return;
     isGlitching = true;
-    glitchOverlay.classList.add('glitching'); // 1. הגליץ' מתחיל
+    glitchOverlay.classList.add('glitching'); 
 
     glitchTimeoutId = setTimeout(() => {
         glitchOverlay.classList.remove('glitching');
         isGlitching = false;
         glitchTimeoutId = null;
 
-        // 2. איפוס מלא (מתרחש רק לאחר שהגליץ' נגמר)
+        // איפוס מלא 
         currentZoom = 1;
         currentTranslateX = 0;
         currentTranslateY = 0;
@@ -147,7 +145,6 @@ function performZoom(delta) {
 
     // לוגיקת המתנה של 2 שניות על החלודה המלאה (במחשב/גלגלת)
     if (currentZoom === 1 && delta < 0) {
-        // הצג חלודה מלאה כסימן לפני המתנה
         rustLayers.forEach(layer => layer.style.opacity = 0);
         rustLayers[2].style.opacity = 1; 
         cleanLayer.style.opacity = 0;
@@ -169,7 +166,6 @@ function handleWheel(event) {
     event.preventDefault();
     const delta = -event.deltaY * 0.005;
     
-    // מונע קיזוז מגע מלהשפיע על גלגלת העכבר
     currentTranslateX = previousTranslateX;
     currentTranslateY = previousTranslateY;
 
@@ -238,7 +234,6 @@ function getRelativePosition(clientX, clientY) {
 
 
 function handleTouchStart(event) {
-    // מטפל באיפוס מיידי אם מתחילים מגע בזמן המתנה לגליץ'
     if (rustHoldTimeoutId || isGlitching) {
         if (rustHoldTimeoutId) clearTimeout(rustHoldTimeoutId);
         if (glitchTimeoutId) clearTimeout(glitchTimeoutId);
@@ -261,7 +256,7 @@ function handleTouchStart(event) {
 
     if (event.touches.length === 2) {
         isPinching = true;
-        isDragging = false; 
+        isDragging = false; // ודא שגרירה כבויה
         initialDistance = getDistance(event.touches[0], event.touches[1]);
         const center = getCenter(event.touches[0], event.touches[1]);
         const relativeCenter = getRelativePosition(center.x, center.y);
@@ -271,9 +266,10 @@ function handleTouchStart(event) {
 
         previousTranslateX = currentTranslateX;
         previousTranslateY = currentTranslateY;
-    } else if (event.touches.length === 1 && currentZoom >= MIN_PAN_ZOOM) {
-        // התחלת גרירה באצבע אחת
+    } else if (event.touches.length === 1 && currentZoom >= MIN_PAN_ZOOM && !isPinching) {
+        // התחלת גרירה באצבע אחת - רק אם התמונה מוגדלת
         isDragging = true;
+        // FIX: שמור את המיקום ההתחלתי של הגרירה
         startX = event.touches[0].clientX;
         startY = event.touches[0].clientY;
         
@@ -288,7 +284,7 @@ function handleTouchMove(event) {
 
     if (isPinching && event.touches.length === 2) {
         // --- לוגיקת Pinch Zoom (שתי אצבעות) ---
-        isDragging = false; 
+        isDragging = false; // ודא שגרירה כבויה בזמן צביטה
         const newDistance = getDistance(event.touches[0], event.touches[1]);
         const scaleFactor = newDistance / initialDistance;
 
@@ -315,11 +311,11 @@ function handleTouchMove(event) {
         updateImageTransform();
         updateRustLayers(); 
 
-        // ** לוגיקת חלודה וגליץ' במגע (Pinch) - התיקון **
+        // ** לוגיקת חלודה וגליץ' במגע (Pinch) **
         if (currentZoom === 1) {
-            // FIX: מעבר למצב חלודה מלאה כסימן, לא ניקוי מיידי!
+            // מעבר למצב חלודה מלאה כסימן, לא ניקוי מיידי!
             rustLayers.forEach(layer => layer.style.opacity = 0);
-            rustLayers[2].style.opacity = 1; // מציג את החלודה המלאה
+            rustLayers[2].style.opacity = 1; 
             cleanLayer.style.opacity = 0;
 
             if (!rustHoldTimeoutId) {
@@ -335,8 +331,7 @@ function handleTouchMove(event) {
                 rustHoldTimeoutId = null;
             }
         }
-        // ------------------------------------------
-
+        
         previousTranslateX = currentTranslateX;
         previousTranslateY = currentTranslateY;
         initialDistance = newDistance;
@@ -346,31 +341,29 @@ function handleTouchMove(event) {
         const dx = event.touches[0].clientX - startX;
         const dy = event.touches[0].clientY - startY;
 
-        if (currentZoom >= MIN_PAN_ZOOM) {
-            currentTranslateX = previousTranslateX + dx;
-            currentTranslateY = previousTranslateY + dy;
-            updateImageTransform();
-        }
+        // גרירה רק אם התמונה מוגדלת (הבדיקה נעשתה ב-TouchStart)
+        currentTranslateX = previousTranslateX + dx;
+        currentTranslateY = previousTranslateY + dy;
+        updateImageTransform();
     }
 }
 
 function handleTouchEnd() {
+    // FIX: אם משחררים אצבע, ודא ששני המצבים כבויים
+    const wasPinching = isPinching;
     isPinching = false;
-    // אם היינו בגרירה, היא תיפסק, אבל ה-previousTranslate נשמר ב-handleTouchMove
+    isDragging = false; // כבוי, אלא אם הפעולה הבאה היא גרירה
 
     initialFocusPointX = 0; 
     initialFocusPointY = 0;
     
-    // שמור את המיקום הסופי
+    // שמור את המיקום הסופי של הקיזוז/גרירה
     previousTranslateX = currentTranslateX; 
     previousTranslateY = currentTranslateY;
     
-    // ודא ש-isDragging מוגדר ל-false בסוף מגע
-    isDragging = false; 
-
     // מטפל בהמתנת הגליץ' לאחר סיום מגע
     if (currentZoom === 1 && !rustHoldTimeoutId && !isGlitching) {
-         // FIX: הצג חלודה מלאה לפני תחילת הטיימר
+         // הצג חלודה מלאה לפני תחילת הטיימר
          rustLayers.forEach(layer => layer.style.opacity = 0);
          rustLayers[2].style.opacity = 1; 
          cleanLayer.style.opacity = 0;
